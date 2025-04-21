@@ -63,7 +63,6 @@
         "fps": 24,
         "chunk_width": 6,
         "load": "./downloads/4.5B_base",
-        "t5_cache_dir": "./downloads/t5_cache",
         "t5_pretrained": "./downloads/t5_pretrained",
         "vae_pretrained": "./downloads/vae",
         "scale_factor": 0.18215,

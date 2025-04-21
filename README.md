@@ -20,9 +20,13 @@
 
 This repository contains the code for the MAGI-1 model, pre-trained weights and inference code. You can find more information on our [technical report](https://static.magi.world/static/files/MAGI_1.pdf) or directly create magic with MAGI-1 [here](http://sand.ai) . 🚀✨
 
-## 🔥🔥🔥 Latest News 
+## 🔥🔥🔥 Latest News
 
 - Apr 21, 2025: MAGI-1 is here 🎉. We've released the model weights and inference code — check it out!
+
+<div align="center">
+  <video src="https://static.magi.world/static/videos/magi-demo-720p.mp4" width="70%" poster=""> </video>
+</div>
 
 ## 1. About
 
@@ -123,8 +127,8 @@ pip install -r requirements.txt
 # Install ffmpeg
 conda install -c conda-forge ffmpeg=4.4
 
-# Install MagiAttention, for more information, please refer to https://github.com/world-sim-dev/MagiAttention
-git clone https://github.com/world-sim-dev/MagiAttention.git
+# Install MagiAttention, for more information, please refer to https://github.com/SandAI-org/MagiAttention#
+git clone git@github.com:SandAI-org/MagiAttention.git
 cd MagiAttention
 git submodule update --init --recursive
 pip install --no-build-isolation .
@@ -192,7 +196,7 @@ By adjusting these parameters, you can flexibly control the input and output to 
 
 ## 6. License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details. 
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
 ## 7. Citation
 
@@ -200,10 +204,10 @@ If you find our code or model useful in your research, please cite:
 
 ```bibtex
 @misc{magi1,
-      title={MAGI-1: Autoregressive Video Generation at Scale}, 
+      title={MAGI-1: Autoregressive Video Generation at Scale},
       author={Sand-AI},
       year={2025},
-      url={https://static.magi.world/static/files/MAGI_1.pdf}, 
+      url={https://static.magi.world/static/files/MAGI_1.pdf},
 }
 ```
 

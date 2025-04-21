@@ -76,7 +76,6 @@ class RuntimeConfig:
     chunk_width: int = 6  # Clip width for the diffusion model
 
     # Checkpoint, includes t5, vae, dit, etc.
-    t5_cache_dir: str = None  # Path to save text embeddings of T5 model.
     t5_pretrained: str = None  # Path to load pretrained T5 model.
     vae_pretrained: str = None  # Path to load pretrained VAE model.
     scale_factor: float = 0.18215  # Scale factor for the vae

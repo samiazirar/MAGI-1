@@ -14,7 +14,6 @@
 
 
 import gc
-import hashlib
 import os
 from typing import List
 
@@ -146,20 +145,7 @@ def _t5(model_cache_dir, model_max_length) -> T5Embedder:
     return _t5_cache
 
 
-def get_t5_embedding(prompt, embedding_cache_dir, model_cache_dir, model_max_length):
-    cache_name = hashlib.md5(prompt.encode("utf-8")).hexdigest()
-    os.makedirs(embedding_cache_dir, exist_ok=True)
-    cache_name = os.path.join(embedding_cache_dir, f"{cache_name}.pth")
-    if not os.path.exists(cache_name):
-        with torch.no_grad():
-            caption_embs, emb_masks = _t5(model_cache_dir, model_max_length).get_text_embeddings([prompt])
-        return caption_embs, emb_masks
-    else:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        return torch.load(cache_name, map_location=device)
-
-
-def prepare_prompt_embeddings(prompts: List[str], embedding_cache_dir: str, model_cache_dir, model_max_length):
+def prepare_prompt_embeddings(prompts: List[str], model_cache_dir, model_max_length):
     magi_logger.info("Precompute validation prompt embeddings")
     magi_logger.debug(
         f"rank {torch.distributed.get_rank()} memory allocated before precompute validation prompt embeddings: {torch.cuda.memory_allocated() / 1024**3:.2f} GB"
@@ -171,7 +157,7 @@ def prepare_prompt_embeddings(prompts: List[str], embedding_cache_dir: str, mode
     txt_embs = []
     for prompt in prompts:
         with torch.no_grad():
-            caption_embs, emb_masks = get_t5_embedding(prompt, embedding_cache_dir, model_cache_dir, model_max_length)
+            caption_embs, emb_masks = _t5(model_cache_dir, model_max_length).get_text_embeddings([prompt])
             caption_embs = caption_embs.float()[:, None]
             txt_embs.append([caption_embs, emb_masks])
             magi_logger.debug(f"caption_embs.shape = {caption_embs.shape}")
@@ -195,18 +181,12 @@ def get_txt_embeddings(prompt: str, config: MagiConfig):
     prompts = [prompt]
     if not torch.distributed.is_initialized():
         txt_embs = prepare_prompt_embeddings(
-            prompts,
-            config.runtime_config.t5_cache_dir,
-            config.runtime_config.t5_pretrained,
-            config.model_config.caption_max_length,
+            prompts, config.runtime_config.t5_pretrained, config.model_config.caption_max_length
         )
     else:
         if is_last_tp_cp_rank():
             txt_embs = prepare_prompt_embeddings(
-                prompts,
-                config.runtime_config.t5_cache_dir,
-                config.runtime_config.t5_pretrained,
-                config.model_config.caption_max_length,
+                prompts, config.runtime_config.t5_pretrained, config.model_config.caption_max_length
             )
         else:
             txt_embs = [None]
