@@ -25,8 +25,10 @@ This repository contains the code for the MAGI-1 model, pre-trained weights and 
 - Apr 21, 2025: MAGI-1 is here 🎉. We've released the model weights and inference code — check it out!
 
 <div align="center">
-  <video src="https://static.magi.world/static/videos/magi-demo-720p.mp4" width="70%" poster=""> </video>
+  <video src="https://github.com/user-attachments/assets/5cfa90e0-f6ed-476b-a194-71f1d309903a
+" width="70%" poster=""> </video>
 </div>
+
 
 ## 1. About
 
