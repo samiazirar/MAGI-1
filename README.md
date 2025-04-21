@@ -20,19 +20,20 @@
 
 This repository contains the code for the MAGI-1 model, pre-trained weights and inference code. You can find more information on our [technical report](https://static.magi.world/static/files/MAGI_1.pdf) or directly create magic with MAGI-1 [here](http://sand.ai) . 🚀✨
 
+
 ## 🔥🔥🔥 Latest News
 
 - Apr 21, 2025: MAGI-1 is here 🎉. We've released the model weights and inference code — check it out!
-
-<div align="center">
-  <video src="https://github.com/user-attachments/assets/5cfa90e0-f6ed-476b-a194-71f1d309903a
-" width="70%" poster=""> </video>
-</div>
 
 
 ## 1. About
 
 We present MAGI-1, a world model that generates videos by ***autoregressively*** predicting a sequence of video chunks, defined as fixed-length segments of consecutive frames. Trained to denoise per-chunk noise that increases monotonically over time, MAGI-1 enables causal temporal modeling and naturally supports streaming generation. It achieves strong performance on image-to-video (I2V) tasks conditioned on text instructions, providing high temporal consistency and scalability, which are made possible by several algorithmic innovations and a dedicated infrastructure stack. MAGI-1 further supports controllable generation via chunk-wise prompting, enabling smooth scene transitions, long-horizon synthesis, and fine-grained text-driven control. We believe MAGI-1 offers a promising direction for unifying high-fidelity video generation with flexible instruction control and real-time deployment.
+
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/5cfa90e0-f6ed-476b-a194-71f1d309903a
+" width="70%" poster=""> </video>
+</div>
 
 
 ## 2. Model Summary
