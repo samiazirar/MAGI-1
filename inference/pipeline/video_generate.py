@@ -87,7 +87,8 @@ def extract_feature_for_inference(
     runtime_config = model.runtime_config
     ### Prepare prefix video feature
     infer_chunk_num = math.ceil(
-        runtime_config.num_frames // runtime_config.temporal_downsample_factor * 1.0 / runtime_config.chunk_width
+        (runtime_config.num_frames // runtime_config.temporal_downsample_factor * 1.0 + prefix_video.size(2))
+        / runtime_config.chunk_width
     )
     clean_chunk_num = 0
     if prefix_video is not None:
@@ -126,7 +127,7 @@ def extract_feature_for_inference(
         t_schedule_config={},
         num_steps=runtime_config.num_steps,
         task_idx_list=[0],
-        report_chunk_num_list=[infer_chunk_num],
+        report_chunk_num_list=[infer_chunk_num - clean_chunk_num],
         chunk_num=latent_size_t // runtime_config.chunk_width,
     )
 
