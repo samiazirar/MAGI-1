@@ -23,6 +23,7 @@ This repository contains the code for the MAGI-1 model, pre-trained weights and 
 
 ## 🔥🔥🔥 Latest News
 
+- May 30, 2025: Support for ComfyUI is added 🎉 — the custom nodes for MAGI-1 are now available. Try them out in your workflows!
 - May 26, 2025: MAGI-1 4.5B distill and distill+quant models has been released 🎉 — we’ve updated the model weights - check it out!
 - May 14, 2025: Added Dify DSL for prompt enhancement 🎉 — import it into Dify to boost prompt quality!
 - Apr 30, 2025: MAGI-1 4.5B model has been released 🎉. We've updated the model weights — check it out!

@@ -81,7 +81,7 @@ def _process_null_embeddings(
 
 @torch.inference_mode()
 def extract_feature_for_inference(
-    model: torch.nn.Module, prompt: str, prefix_video: torch.Tensor, caption_embs: torch.Tensor, emb_masks: torch.Tensor
+    model: torch.nn.Module, prefix_video: torch.Tensor, caption_embs: torch.Tensor, emb_masks: torch.Tensor
 ) -> InferenceInput:
     model_config = model.model_config
     runtime_config = model.runtime_config
@@ -107,7 +107,7 @@ def extract_feature_for_inference(
     null_emb_masks = torch.zeros_like(caption_emb_masks)
     null_embs, null_emb_masks = _process_null_embeddings(null_caption_embedding, null_emb_masks, infer_chunk_num)
 
-    if len(prompt) == 0:
+    if emb_masks.sum() == 0:
         emb_masks = torch.cat([null_emb_masks, null_emb_masks], dim=0)
         y = torch.cat([null_embs, null_embs])
     else:
@@ -755,10 +755,10 @@ class SampleTransport:
 
 
 def generate_per_chunk(
-    model: torch.nn.Module, prompt: str, prefix_video: torch.Tensor, caption_embs: torch.Tensor, emb_masks: torch.Tensor
+    model: torch.nn.Module, prefix_video: torch.Tensor, caption_embs: torch.Tensor, emb_masks: torch.Tensor
 ) -> Generator[Tuple[int, int, int, int, int, torch.Tensor], None, None]:
     device = f"cuda:{torch.cuda.current_device()}"
-    transport_inputs: InferenceInput = extract_feature_for_inference(model, prompt, prefix_video, caption_embs, emb_masks)
+    transport_inputs: InferenceInput = extract_feature_for_inference(model, prefix_video, caption_embs, emb_masks)
     sample_transport = SampleTransport(model=model, transport_inputs=[transport_inputs], device=device)
     for _, _, chunk in sample_transport.walk():
         yield chunk

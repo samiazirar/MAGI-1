@@ -49,7 +49,7 @@ class MagiPipeline:
             [
                 post_chunk_process(chunk, self.config)
                 for chunk in generate_per_chunk(
-                    model=dit, prompt=prompt, prefix_video=prefix_video, caption_embs=caption_embs, emb_masks=emb_masks
+                    model=dit, prefix_video=prefix_video, caption_embs=caption_embs, emb_masks=emb_masks
                 )
             ],
             dim=0,

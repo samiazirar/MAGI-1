@@ -147,11 +147,12 @@ def _t5(model_cache_dir, model_device, model_max_length) -> T5Embedder:
 
 def prepare_prompt_embeddings(prompts: List[str], model_cache_dir, model_device, model_max_length):
     magi_logger.info("Precompute validation prompt embeddings")
+    cur_rank = torch.distributed.get_rank() if torch.distributed.is_initialized() else 0
     magi_logger.debug(
-        f"rank {torch.distributed.get_rank()} memory allocated before precompute validation prompt embeddings: {torch.cuda.memory_allocated() / 1024**3:.2f} GB"
+        f"rank {cur_rank} memory allocated before precompute validation prompt embeddings: {torch.cuda.memory_allocated() / 1024**3:.2f} GB"
     )
     magi_logger.debug(
-        f"rank {torch.distributed.get_rank()} memory reserved before precompute validation prompt embeddings: {torch.cuda.memory_reserved() / 1024**3:.2f} GB"
+        f"rank {cur_rank} memory reserved before precompute validation prompt embeddings: {torch.cuda.memory_reserved() / 1024**3:.2f} GB"
     )
 
     txt_embs = []
@@ -167,10 +168,10 @@ def prepare_prompt_embeddings(prompts: List[str], model_cache_dir, model_device,
     txt_embs = [[x[0].cpu(), x[1].cpu()] for x in txt_embs]
 
     magi_logger.debug(
-        f"rank {torch.distributed.get_rank()} memory allocated after precompute validation prompt embeddings: {torch.cuda.memory_allocated() / 1024**3:.2f} GB"
+        f"rank {cur_rank} memory allocated after precompute validation prompt embeddings: {torch.cuda.memory_allocated() / 1024**3:.2f} GB"
     )
     magi_logger.debug(
-        f"rank {torch.distributed.get_rank()} memory reserved after precompute validation prompt embeddings: {torch.cuda.memory_reserved() / 1024**3:.2f} GB"
+        f"rank {cur_rank} memory reserved after precompute validation prompt embeddings: {torch.cuda.memory_reserved() / 1024**3:.2f} GB"
     )
     gc.collect()
     torch.cuda.empty_cache()
