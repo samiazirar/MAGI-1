@@ -2,13 +2,26 @@
 
 ## 安装方法
 
-- 用手动安装的方式[下载 ComfyUI 并安装](https://github.com/comfyanonymous/ComfyUI?tab=readme-ov-file#manual-install-windows-linux)
+1. 用手动安装的方式[下载 ComfyUI 并安装](https://github.com/comfyanonymous/ComfyUI?tab=readme-ov-file#manual-install-windows-linux)
 
-- 下载本仓库到 *ComfyUI/custom_nodes/MAGI-1* 路径并[安装相应的依赖](https://github.com/SandAI-org/MAGI-1?tab=readme-ov-file#environment-preparation)。
+2. 安装MAGI-1节点
 
-    > ⚠️ 为了让ComfyUI识别到自定义节点，需要将`comfyui/__init__.py`移动到MAGI-1根目录下。
+    方法一：使用comfy-cli安装（推荐）
 
-- 下载 MAGI-1 模型文件到本地。在 MAGI-1 的配置文件，例如在文件`example/4.5B/4.5B_base_config.json`中（若要使用4.5B基础模型），修改模型权重的路径为本地绝对路径。主要有以下三个文件路径需要修改：
+    安装 [comfy-cli](https://github.com/Comfy-Org/comfy-cli?tab=readme-ov-file#installation) 后，在命令行中运行以下命令：
+    ```shell
+    cd ComfyUI
+
+    comfy node registry-install MAGI-1
+    ```
+
+    方法二：通过源码安装
+
+    下载本仓库到 *ComfyUI/custom_nodes/MAGI-1* 路径并[安装相应的依赖](https://github.com/SandAI-org/MAGI-1?tab=readme-ov-file#environment-preparation)。
+
+    > ⚠️ 为了让ComfyUI识别到自定义节点，以上两种方法都需要将`comfyui/__init__.py`移动到 MAGI-1 项目的根目录下。
+
+3. 下载 MAGI-1 模型文件到本地。在 MAGI-1 的配置文件，例如在文件`example/4.5B/4.5B_base_config.json`中（若要使用4.5B基础模型），修改模型权重的路径为本地绝对路径。主要有以下三个文件路径需要修改：
     * **load**: DiT 模型权重的绝对路径
     * **t5_pretrained**： T5 模型权重的绝对路径
     * **vae_pretrained**： VAE 模型权重的绝对路径

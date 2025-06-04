@@ -2,13 +2,29 @@
 
 ## Installation
 
-* Manually [download and install ComfyUI](https://github.com/comfyanonymous/ComfyUI?tab=readme-ov-file#manual-install-windows-linux)
+1. **Manual Installation of [ComfyUI](https://github.com/comfyanonymous/ComfyUI?tab=readme-ov-file#manual-install-windows-linux)**
 
-* Download this repository into the path *ComfyUI/custom\_nodes/MAGI-1* and [install the required dependencies](https://github.com/SandAI-org/MAGI-1?tab=readme-ov-file#environment-preparation).
+   Download and install ComfyUI manually following the official instructions.
 
-  > ⚠️ To make ComfyUI recognize the custom node, you need to move `comfyui/__init__.py` to the root directory of MAGI-1.
+2. **Install MAGI-1 Node**
 
-* Download the MAGI-1 model files to your local machine. In the MAGI-1 config file, such as `example/4.5B/4.5B_base_config.json` (if using the 4.5B base model), change the model weights paths to absolute local paths. The following three fields need to be updated:
+    **Method 1: Install via comfy-cli (Recommended)**
+
+    After installing [comfy-cli](https://github.com/Comfy-Org/comfy-cli?tab=readme-ov-file#installation), run the following commands in the terminal:
+    ```shell
+    cd ComfyUI
+    comfy node registry-install MAGI-1
+    ```
+
+    **Method 2: Install from Source**
+
+    Download the MAGI-1 repository and place it in `ComfyUI/custom_nodes/MAGI-1`. Then, [install the required dependencies](https://github.com/SandAI-org/MAGI-1?tab=readme-ov-file#environment-preparation).
+
+    > ⚠️ To make ComfyUI recognize the custom node, you need to move `comfyui/__init__.py` to the root directory of MAGI-1 for both methods above.
+
+3. **Download the MAGI-1 Model Files Locally**
+
+    Download the MAGI-1 model files to your local machine. In the MAGI-1 config file, such as `example/4.5B/4.5B_base_config.json` (if using the 4.5B base model), change the model weights paths to absolute local paths. The following three fields need to be updated:
 
   * **load**: Absolute path to the DiT model weights
   * **t5\_pretrained**: Absolute path to the T5 model weights
