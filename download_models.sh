@@ -22,3 +22,6 @@ huggingface-cli download sand-ai/MAGI-1 \
   --include "ckpt/magi/24B_base/*" \
   --local-dir-use-symlinks False
 mv ./downloads/24B_base/ckpt/magi/24B_base/* ./downloads/24B_base/
+
+# uvicorn magi_video_service:app --host 0.0.0.0 --port 8002 
+# ssh -N -f -R 8002:localhost:8002 lmgpu-login

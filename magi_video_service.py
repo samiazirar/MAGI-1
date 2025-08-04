@@ -52,17 +52,31 @@ def _save_temp(img: Image.Image) -> str:
 
 def _generate(prompt: str, img: Optional[Image.Image]) -> str:
     img_path = _save_temp(img) if img else None
-    out = generate_magi_video(
-        prompt=prompt,
-        mode="i2v" if img else "t2v",
-        image_path=img_path,
-        model_size=MAGI_MODEL_SIZE,
-        gpus=MAGI_GPUS,
-        config_file=MAGI_CONFIG_FILE,
-    )
-    if not out["success"]:
-        raise RuntimeError(out["stderr"] or "Unknown MAGI error")
-    return out["output_path"]
+    try:
+        out = generate_magi_video(
+            prompt=prompt,
+            mode="i2v" if img else "t2v",
+            image_path=img_path,
+            model_size=MAGI_MODEL_SIZE,
+            gpus=MAGI_GPUS,
+            config_file=MAGI_CONFIG_FILE,
+        )
+        if not out["success"]:
+            error_msg = out.get("error") or out.get("stderr") or "Unknown MAGI error"
+            print(f"MAGI generation failed: {error_msg}")
+            if out.get("stdout"):
+                print(f"STDOUT: {out['stdout']}")
+            if out.get("stderr"):
+                print(f"STDERR: {out['stderr']}")
+            raise RuntimeError(error_msg)
+        return out["output_path"]
+    finally:
+        # Clean up temporary image file
+        if img_path and os.path.exists(img_path):
+            try:
+                os.remove(img_path)
+            except Exception as e:
+                print(f"Warning: Could not remove temp file {img_path}: {e}")
 
 # --------------------------------------------------------------------- #
 # OpenAI-style schema (unchanged from Cosmos) 
@@ -149,9 +163,38 @@ def generate(prompt: str,
              model_size: Optional[str] = None,
              gpus: Optional[int] = None):
     img = _fetch_image(image_url) if image_url else None
-    path = _generate(prompt, img)
-    return {"success": True,
-            "video_path": path,
-            "download_url": f"/download/{os.path.basename(path)}",
-            "prompt": prompt,
-            "model_size": model_size or MAGI_MODEL_SIZE}
+    
+    # Use provided parameters or fall back to defaults
+    actual_model_size = model_size or MAGI_MODEL_SIZE
+    actual_gpus = gpus or MAGI_GPUS
+    
+    img_path = _save_temp(img) if img else None
+    try:
+        out = generate_magi_video(
+            prompt=prompt,
+            mode="i2v" if img else "t2v",
+            image_path=img_path,
+            model_size=actual_model_size,
+            gpus=actual_gpus,
+            config_file=MAGI_CONFIG_FILE,
+        )
+        if not out["success"]:
+            error_msg = out.get("error") or out.get("stderr") or "Unknown MAGI error"
+            raise HTTPException(500, f"Video generation failed: {error_msg}")
+            
+        path = out["output_path"]
+        return {"success": True,
+                "video_path": path,
+                "download_url": f"/download/{os.path.basename(path)}",
+                "prompt": prompt,
+                "model_size": actual_model_size,
+                "gpus": actual_gpus}
+    except Exception as e:
+        raise HTTPException(500, f"Video generation failed: {e}")
+    finally:
+        # Clean up temporary image file
+        if img_path and os.path.exists(img_path):
+            try:
+                os.remove(img_path)
+            except Exception:
+                pass  # Ignore cleanup errors
