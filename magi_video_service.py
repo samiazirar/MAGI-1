@@ -21,6 +21,15 @@ from PIL import Image
 from magi_video_generator import generate_magi_video
 
 # --------------------------------------------------------------------- #
+# Additional models for direct API
+# --------------------------------------------------------------------- #
+class GenerateRequest(BaseModel):
+    prompt: str
+    image_url: Optional[str] = None
+    model_size: Optional[str] = None
+    gpus: Optional[int] = None
+
+# --------------------------------------------------------------------- #
 # Configuration (env vars make it docker-friendly)
 # --------------------------------------------------------------------- #
 OUT_DIR          = os.getenv("OUT_DIR", "/tmp/magi_outputs")
@@ -158,20 +167,17 @@ def download(file_id: str):
     return FileResponse(path, media_type="video/mp4")
 
 @app.post("/generate")
-def generate(prompt: str,
-             image_url: Optional[str] = None,
-             model_size: Optional[str] = None,
-             gpus: Optional[int] = None):
-    img = _fetch_image(image_url) if image_url else None
+def generate(request: GenerateRequest):
+    img = _fetch_image(request.image_url) if request.image_url else None
     
     # Use provided parameters or fall back to defaults
-    actual_model_size = model_size or MAGI_MODEL_SIZE
-    actual_gpus = gpus or MAGI_GPUS
+    actual_model_size = request.model_size or MAGI_MODEL_SIZE
+    actual_gpus = request.gpus or MAGI_GPUS
     
     img_path = _save_temp(img) if img else None
     try:
         out = generate_magi_video(
-            prompt=prompt,
+            prompt=request.prompt,
             mode="i2v" if img else "t2v",
             image_path=img_path,
             model_size=actual_model_size,
@@ -186,7 +192,7 @@ def generate(prompt: str,
         return {"success": True,
                 "video_path": path,
                 "download_url": f"/download/{os.path.basename(path)}",
-                "prompt": prompt,
+                "prompt": request.prompt,
                 "model_size": actual_model_size,
                 "gpus": actual_gpus}
     except Exception as e:
