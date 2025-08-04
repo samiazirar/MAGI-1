@@ -14,7 +14,7 @@ result = generate_magi_video(prompt="A red fox in the snow")
 print(result["output_path"])
 """
 
-import os, subprocess, uuid
+import os, subprocess, uuid, sys, threading, time
 from pathlib import Path
 from typing import Optional, Dict, Any
 
@@ -52,6 +52,51 @@ def check_dependencies() -> Dict[str, Any]:
     }
 
 
+def _stream_output(process, prefix="", show_progress=True):
+    """Stream subprocess output in real-time."""
+    stdout_lines = []
+    stderr_lines = []
+    
+    def read_stdout():
+        while True:
+            line = process.stdout.readline()
+            if not line:
+                break
+            line = line.strip()
+            stdout_lines.append(line)
+            if show_progress and line:
+                print(f"{prefix}[STDOUT] {line}", flush=True)
+    
+    def read_stderr():
+        while True:
+            line = process.stderr.readline()
+            if not line:
+                break
+            line = line.strip()
+            stderr_lines.append(line)
+            if show_progress and line:
+                print(f"{prefix}[STDERR] {line}", flush=True)
+    
+    # Start threads to read both stdout and stderr
+    stdout_thread = threading.Thread(target=read_stdout)
+    stderr_thread = threading.Thread(target=read_stderr)
+    
+    stdout_thread.daemon = True
+    stderr_thread.daemon = True
+    
+    stdout_thread.start()
+    stderr_thread.start()
+    
+    # Wait for process to complete
+    process.wait()
+    
+    # Wait for threads to finish reading
+    stdout_thread.join(timeout=1)
+    stderr_thread.join(timeout=1)
+    
+    return "\n".join(stdout_lines), "\n".join(stderr_lines)
+
+
 def generate_magi_video(
     *,
     prompt: str,
@@ -63,10 +108,14 @@ def generate_magi_video(
     config_file: Optional[str] = None,
     save_path: Optional[str] = None,
     extra_args: Optional[Dict[str, Any]] = None,
+    show_progress: bool = True,
 ) -> Dict[str, Any]:
     """
     Parameters mirror the CLI flags documented in the MAGI README.
     All args are validated and forwarded to the official entry.py script.
+    
+    Args:
+        show_progress: If True, stream the actual process output in real-time.
     """
     prompt = prompt.strip()
     if not prompt:
@@ -138,18 +187,40 @@ def generate_magi_video(
 
     # Change to MAGI root directory for execution
     original_cwd = os.getcwd()
+    start_time = time.time()
+    
     try:
         os.chdir(magi_root)
-        result = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=1800)  # 30 min timeout
-    except subprocess.TimeoutExpired:
-        return {
-            "success": False,
-            "error": "Video generation timed out after 30 minutes",
-            "command": " ".join(cmd),
-            "returncode": -1,
-            "stdout": "",
-            "stderr": "Timeout after 30 minutes"
-        }
+        
+        # Start process with streaming output
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=env,
+            bufsize=1  # Line buffered
+        )
+        
+        # Stream output in real-time or capture silently
+        try:
+            stdout, stderr = _stream_output(
+                process, 
+                prefix="" if show_progress else "",  # No prefix, just raw output
+                show_progress=show_progress
+            )
+            returncode = process.returncode
+        except Exception as e:
+            process.kill()
+            return {
+                "success": False,
+                "error": f"Error during execution: {e}",
+                "command": " ".join(cmd),
+                "returncode": -1,
+                "stdout": "",
+                "stderr": str(e)
+            }
+            
     except Exception as e:
         return {
             "success": False,
@@ -162,35 +233,36 @@ def generate_magi_video(
     finally:
         os.chdir(original_cwd)
 
+    duration = time.time() - start_time
+        
     # Check for common dependency errors and provide helpful messages
-    if result.returncode != 0:
-        stderr = result.stderr.lower()
-        if "no module named 'torch'" in stderr:
-            return {
-                "success": False,
-                "error": "PyTorch not installed. Please install PyTorch with CUDA support for GPU inference.",
-                "command": " ".join(cmd),
-                "returncode": result.returncode,
-                "stdout": result.stdout,
-                "stderr": result.stderr
-            }
-        elif "cuda" in stderr and ("not available" in stderr or "not found" in stderr):
-            return {
-                "success": False,
-                "error": "CUDA not available. Please ensure CUDA is properly installed and GPUs are accessible.",
-                "command": " ".join(cmd),
-                "returncode": result.returncode,
-                "stdout": result.stdout,
-                "stderr": result.stderr
-            }
+    if returncode != 0:
+        stderr_lower = stderr.lower()
+        if "no module named 'torch'" in stderr_lower:
+            error_msg = "PyTorch not installed. Please install PyTorch with CUDA support for GPU inference."
+        elif "cuda" in stderr_lower and ("not available" in stderr_lower or "not found" in stderr_lower):
+            error_msg = "CUDA not available. Please ensure CUDA is properly installed and GPUs are accessible."
+        else:
+            error_msg = f"Generation failed with return code {returncode}"
+            
+        return {
+            "success": False,
+            "error": error_msg,
+            "command": " ".join(cmd),
+            "returncode": returncode,
+            "stdout": stdout,
+            "stderr": stderr,
+            "duration": duration
+        }
 
-    ok = result.returncode == 0 and out.exists()
+    ok = returncode == 0 and out.exists()
 
     return {
         "success": ok,
         "output_path": str(out) if ok else None,
-        "stdout": result.stdout,
-        "stderr": result.stderr,
+        "stdout": stdout,
+        "stderr": stderr,
         "command": " ".join(cmd),
-        "returncode": result.returncode,
+        "returncode": returncode,
+        "duration": duration
     }

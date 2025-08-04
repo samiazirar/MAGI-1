@@ -59,7 +59,7 @@ def _save_temp(img: Image.Image) -> str:
     img.save(path, "JPEG", quality=95)
     return path
 
-def _generate(prompt: str, img: Optional[Image.Image]) -> str:
+def _generate(prompt: str, img: Optional[Image.Image], show_progress: bool = True) -> str:
     img_path = _save_temp(img) if img else None
     try:
         out = generate_magi_video(
@@ -69,15 +69,12 @@ def _generate(prompt: str, img: Optional[Image.Image]) -> str:
             model_size=MAGI_MODEL_SIZE,
             gpus=MAGI_GPUS,
             config_file=MAGI_CONFIG_FILE,
+            show_progress=show_progress,
         )
         if not out["success"]:
             error_msg = out.get("error") or out.get("stderr") or "Unknown MAGI error"
-            print(f"MAGI generation failed: {error_msg}")
-            if out.get("stdout"):
-                print(f"STDOUT: {out['stdout']}")
-            if out.get("stderr"):
-                print(f"STDERR: {out['stderr']}")
             raise RuntimeError(error_msg)
+        
         return out["output_path"]
     finally:
         # Clean up temporary image file
@@ -124,6 +121,41 @@ class ChatCompletionResponse(BaseModel):
 app = FastAPI(title="MAGI-1 Video Service", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+# Startup event to show configuration
+@app.on_event("startup")
+async def startup_event():
+    print("🚀" + "=" * 60)
+    print("🎬 MAGI-1 Video Generation Service Starting...")
+    print("🚀" + "=" * 60)
+    print(f"📁 Output Directory: {OUT_DIR}")
+    print(f"🧠 Model Size: {MAGI_MODEL_SIZE}")
+    print(f"🔧 GPUs: {MAGI_GPUS}")
+    print(f"⚙️  Config File: {MAGI_CONFIG_FILE or 'Default'}")
+    
+    # Check dependencies
+    deps = check_dependencies()
+    print(f"📊 Dependencies Status:")
+    print(f"   🔥 PyTorch: {'✅' if deps['torch_available'] else '❌'}")
+    print(f"   🎮 CUDA: {'✅' if deps['cuda_available'] else '❌'}")
+    print(f"   🖥️  GPU Count: {deps['gpu_count']}")
+    print(f"   📜 Entry Script: {'✅' if deps['entry_script_exists'] else '❌'}")
+    
+    if not deps['ready']:
+        print("⚠️  WARNING: Some dependencies are missing!")
+        for issue in deps['issues']:
+            print(f"   ❌ {issue}")
+        print("⚠️  Service may not function properly until dependencies are installed.")
+    else:
+        print("✅ All dependencies are available!")
+    
+    print("🚀" + "=" * 60)
+    print("🌐 Service is ready! Endpoints:")
+    print("   📍 Health: http://localhost:8002/health")
+    print("   📍 Ping: http://localhost:8002/ping")
+    print("   📍 OpenAI API: http://localhost:8002/v1/chat/completions")
+    print("   📍 Direct API: http://localhost:8002/generate")
+    print("🚀" + "=" * 60)
+
 @app.get("/ping")
 def ping(): return {"status": "ok", "model": MAGI_MODEL_SIZE, "gpus": MAGI_GPUS}
 
@@ -154,16 +186,17 @@ def completions(req: ChatCompletionRequest, http_request: Request):
     prompt = " ".join(prompt_parts) or "(empty prompt)"
 
     try:
-        video_path = _generate(prompt, img)
+        video_path = _generate(prompt, img, show_progress=True)
         url = str(http_request.url_for("download", file_id=os.path.basename(video_path)))
         choice = Choice(index=0, message={"role": "assistant", "content": url,
                                           "metadata": {"generated_with": "magi-1",
                                                        "model_size": MAGI_MODEL_SIZE,
                                                        "prompt": prompt}})
-        return ChatCompletionResponse(id=f"chatcmpl-{uuid.uuid4().hex}",
-                                      created=int(time.time()),
-                                      model=req.model,
-                                      choices=[choice])
+        response = ChatCompletionResponse(id=f"chatcmpl-{uuid.uuid4().hex}",
+                                          created=int(time.time()),
+                                          model=req.model,
+                                          choices=[choice])
+        return response
     except Exception as e:
         raise HTTPException(500, f"Video generation failed: {e}") from e
 
@@ -190,18 +223,24 @@ def generate(request: GenerateRequest):
             model_size=actual_model_size,
             gpus=actual_gpus,
             config_file=MAGI_CONFIG_FILE,
+            show_progress=True,
         )
         if not out["success"]:
             error_msg = out.get("error") or out.get("stderr") or "Unknown MAGI error"
             raise HTTPException(500, f"Video generation failed: {error_msg}")
             
         path = out["output_path"]
-        return {"success": True,
-                "video_path": path,
-                "download_url": f"/download/{os.path.basename(path)}",
-                "prompt": request.prompt,
-                "model_size": actual_model_size,
-                "gpus": actual_gpus}
+        duration = out.get("duration", 0)
+        response = {
+            "success": True,
+            "video_path": path,
+            "download_url": f"/download/{os.path.basename(path)}",
+            "prompt": request.prompt,
+            "model_size": actual_model_size,
+            "gpus": actual_gpus,
+            "duration": duration
+        }
+        return response
     except Exception as e:
         raise HTTPException(500, f"Video generation failed: {e}")
     finally:
