@@ -19,6 +19,39 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 
 
+def check_dependencies() -> Dict[str, Any]:
+    """Check if required dependencies are available."""
+    issues = []
+    
+    # Check if PyTorch is available
+    try:
+        import torch
+        torch_available = True
+        cuda_available = torch.cuda.is_available()
+        gpu_count = torch.cuda.device_count() if cuda_available else 0
+    except ImportError:
+        torch_available = False
+        cuda_available = False
+        gpu_count = 0
+        issues.append("PyTorch not installed")
+    
+    # Check if MAGI entry script exists
+    magi_root = Path(__file__).parent.absolute()
+    entry_script = magi_root / "inference/pipeline/entry.py"
+    entry_exists = entry_script.exists()
+    if not entry_exists:
+        issues.append(f"MAGI entry script not found: {entry_script}")
+    
+    return {
+        "torch_available": torch_available,
+        "cuda_available": cuda_available,
+        "gpu_count": gpu_count,
+        "entry_script_exists": entry_exists,
+        "issues": issues,
+        "ready": len(issues) == 0
+    }
+
+
 def generate_magi_video(
     *,
     prompt: str,
@@ -114,6 +147,8 @@ def generate_magi_video(
             "error": "Video generation timed out after 30 minutes",
             "command": " ".join(cmd),
             "returncode": -1,
+            "stdout": "",
+            "stderr": "Timeout after 30 minutes"
         }
     except Exception as e:
         return {
@@ -121,9 +156,33 @@ def generate_magi_video(
             "error": f"Failed to execute command: {e}",
             "command": " ".join(cmd),
             "returncode": -1,
+            "stdout": "",
+            "stderr": str(e)
         }
     finally:
         os.chdir(original_cwd)
+
+    # Check for common dependency errors and provide helpful messages
+    if result.returncode != 0:
+        stderr = result.stderr.lower()
+        if "no module named 'torch'" in stderr:
+            return {
+                "success": False,
+                "error": "PyTorch not installed. Please install PyTorch with CUDA support for GPU inference.",
+                "command": " ".join(cmd),
+                "returncode": result.returncode,
+                "stdout": result.stdout,
+                "stderr": result.stderr
+            }
+        elif "cuda" in stderr and ("not available" in stderr or "not found" in stderr):
+            return {
+                "success": False,
+                "error": "CUDA not available. Please ensure CUDA is properly installed and GPUs are accessible.",
+                "command": " ".join(cmd),
+                "returncode": result.returncode,
+                "stdout": result.stdout,
+                "stderr": result.stderr
+            }
 
     ok = result.returncode == 0 and out.exists()
 

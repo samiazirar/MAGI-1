@@ -18,7 +18,7 @@ from starlette.responses import FileResponse
 from pydantic import BaseModel, Field
 from PIL import Image
 
-from magi_video_generator import generate_magi_video
+from magi_video_generator import generate_magi_video, check_dependencies
 
 # --------------------------------------------------------------------- #
 # Additional models for direct API
@@ -128,11 +128,18 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 def ping(): return {"status": "ok", "model": MAGI_MODEL_SIZE, "gpus": MAGI_GPUS}
 
 @app.get("/health")
-def health(): return {"status": "healthy",
-                      "magi_config": {"model_size": MAGI_MODEL_SIZE,
-                                      "gpus": MAGI_GPUS,
-                                      "config_file": MAGI_CONFIG_FILE},
-                      "output_dir": OUT_DIR}
+def health(): 
+    deps = check_dependencies()
+    return {
+        "status": "healthy" if deps["ready"] else "unhealthy",
+        "dependencies": deps,
+        "magi_config": {
+            "model_size": MAGI_MODEL_SIZE,
+            "gpus": MAGI_GPUS,
+            "config_file": MAGI_CONFIG_FILE
+        },
+        "output_dir": OUT_DIR
+    }
 
 @app.post("/v1/chat/completions", response_model=ChatCompletionResponse)
 def completions(req: ChatCompletionRequest, http_request: Request):
